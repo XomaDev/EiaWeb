@@ -3,6 +3,7 @@ package space.themelon.eiaweb
 import org.java_websocket.WebSocket
 import org.java_websocket.handshake.ClientHandshake
 import org.java_websocket.server.WebSocketServer
+import org.json.JSONObject
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 
@@ -13,8 +14,16 @@ class ShellWebSocket(address: InetSocketAddress) : WebSocketServer(address) {
     }
 
     override fun onOpen(conn: WebSocket?, handshake: ClientHandshake) {
+        println("Web Socket Opened")
         conn?.let {
-            SESSION_LOOKUP[it] = EiaSession(it)
+            SESSION_LOOKUP[it] = EiaSession { type, message ->
+                conn.send(
+                    JSONObject()
+                        .put("type", type)
+                        .put("message", message)
+                        .toString()
+                )
+            }
         }
     }
 

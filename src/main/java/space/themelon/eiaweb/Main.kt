@@ -9,7 +9,7 @@ object Main {
     fun main(args: Array<String>) {
         Executor.DEBUG = false
         Executor.STD_LIB = File(System.getProperty("user.dir"), "stdlib/").absolutePath
-        val server = ShellWebSocket(InetSocketAddress(8181))
+        val server = ShellWebSocket(InetSocketAddress(9191))
         server.start()
     }
 }

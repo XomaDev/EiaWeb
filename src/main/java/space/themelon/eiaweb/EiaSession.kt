@@ -1,52 +1,47 @@
 package space.themelon.eiaweb
 
-import org.java_websocket.WebSocket
 import org.json.JSONObject
 import space.themelon.eia64.CompletionHelper
 import space.themelon.eia64.runtime.Executor
 import java.io.PrintStream
 
 class EiaSession(
-    private val webSocket: WebSocket
+    private val callback: (String, String) -> Unit
 ) {
-
-    private fun send(type: String, message: String) {
-        webSocket.send(
-            JSONObject()
-                .put("type", type)
-                .put("message", message)
-                .toString()
-        )
-    }
 
     // In the future, we can add session time constraints
     // TODO: all the executions of each session MUST be in a new thread
 
-    private val output = EiaOutputStream { line ->
-        send("output", line)
-    }
-
+    private val output = EiaOutputStream { callback("output", it) }
     private val executor = Executor().apply {
         standardOutput = PrintStream(output)
+        inputCallback = {
+            // called when an input is being accepted
+            callback("input", "")
+        }
     }
 
     private val completionHelper = CompletionHelper(
         ready = { tokens ->
             runSafely {
+                // tells UI to wait for execution before accepting new input
+                callback("wait", "")
                 executor.loadMainTokens(tokens)
+                callback("executed", "") // execution completed
             }
         },
-        syntaxError = { send("error", it) }
+        syntaxError = { callback("error", it) }
     )
 
     fun newMessage(message: String) {
+        println(message)
         val json = JSONObject(message)
         val type = json.getString("type")
+        val content = json.getString("message")
         if (type == "code") {
-            completionHelper.addLine(json.getString("message"))
+            completionHelper.addLine(content)
         } else {
-            // TODO:
-            //  We
+            executor.standardInput.push(content)
         }
     }
 
@@ -56,7 +51,7 @@ class EiaSession(
         try {
             block()
         } catch (e: Exception) {
-            send("error", e.message.toString())
+            callback("error", e.message.toString())
         }
     }
 }
