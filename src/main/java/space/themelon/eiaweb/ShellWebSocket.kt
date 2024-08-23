@@ -32,6 +32,7 @@ class ShellWebSocket(address: InetSocketAddress) : WebSocketServer(address) {
     }
 
     override fun onMessage(conn: WebSocket?, message: String) {
+        println(message)
         SESSION_LOOKUP[conn]?.newMessage(message)
     }
 

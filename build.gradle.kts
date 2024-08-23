@@ -18,6 +18,7 @@ dependencies {
     implementation("org.java-websocket:Java-WebSocket:1.5.7")
     implementation(files("libs/Eia64.main.jar"))
     implementation("org.json:json:20240303")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 }
 
 tasks.test {
@@ -41,5 +42,5 @@ tasks.register<Jar>("fatJar") {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(11)
 }

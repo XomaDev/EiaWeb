@@ -1,6 +1,7 @@
 package space.themelon.eiaweb
 
-import org.json.JSONObject
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import space.themelon.eia64.CompletionHelper
 import space.themelon.eia64.runtime.Executor
 import java.io.PrintStream
@@ -12,36 +13,43 @@ class EiaSession(
     // In the future, we can add session time constraints
     // TODO: all the executions of each session MUST be in a new thread
 
+    private var awaitingInput = false
+
+
     private val output = EiaOutputStream { callback("output", it) }
     private val executor = Executor().apply {
         standardOutput = PrintStream(output)
         inputCallback = {
+            awaitingInput = true
             // called when an input is being accepted
             callback("input", "")
         }
     }
 
+    private val parallelExecutor = ParallelExecutor(
+        callback = { tokens ->
+            // called back under a new thread
+            callback("wait", "")
+            runSafely {
+                executor.loadMainTokens(tokens)
+            }
+            callback("executed", "") // execution completed
+        },
+    )
+
     private val completionHelper = CompletionHelper(
         ready = { tokens ->
-            runSafely {
-                // tells UI to wait for execution before accepting new input
-                callback("wait", "")
-                executor.loadMainTokens(tokens)
-                callback("executed", "") // execution completed
-            }
+            parallelExecutor.tokens = tokens
         },
         syntaxError = { callback("error", it) }
     )
 
     fun newMessage(message: String) {
-        println(message)
-        val json = JSONObject(message)
-        val type = json.getString("type")
-        val content = json.getString("message")
-        if (type == "code") {
-            completionHelper.addLine(content)
+        if (awaitingInput) {
+            executor.standardInput.push(message)
+            awaitingInput = false
         } else {
-            executor.standardInput.push(content)
+            completionHelper.addLine(message)
         }
     }
 
