@@ -12,7 +12,7 @@ class EiaOutputStream(
     override fun write(b: Int) {
         if (b == 10) {
             // a new line
-            callback(buffer.toString())
+            callback(String(buffer.toByteArray()))
             buffer.reset()
         } else {
             buffer.write(b)
@@ -21,7 +21,7 @@ class EiaOutputStream(
 
     fun pushRemainingBuffer() {
         if (buffer.size() > 0) {
-            callback(buffer.toString())
+            callback(String(buffer.toByteArray()))
             buffer.reset()
         }
     }

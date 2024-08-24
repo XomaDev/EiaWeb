@@ -1,12 +1,11 @@
 package space.themelon.eiaweb
 
-import space.themelon.eia64.syntax.Token
 import kotlin.concurrent.thread
 
 class ParallelExecutor(
-    private val callback: (tokens: List<Token>) -> Unit,
+    private val callback: (tokens: Any) -> Unit,
 ) {
-    var tokens: List<Token>? = null
+    var tokens: Any? = null
 
     init {
         thread {

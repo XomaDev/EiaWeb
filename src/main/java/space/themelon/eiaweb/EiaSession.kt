@@ -1,9 +1,9 @@
 package space.themelon.eiaweb
 
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import org.json.JSONObject
 import space.themelon.eia64.CompletionHelper
 import space.themelon.eia64.runtime.Executor
+import space.themelon.eia64.syntax.Token
 import java.io.PrintStream
 
 class EiaSession(
@@ -22,6 +22,7 @@ class EiaSession(
         inputCallback = {
             awaitingInput = true
             // called when an input is being accepted
+            output.pushRemainingBuffer()
             callback("input", "")
         }
     }
@@ -31,7 +32,11 @@ class EiaSession(
             // called back under a new thread
             callback("wait", "")
             runSafely {
-                executor.loadMainTokens(tokens)
+                if (tokens is ArrayList<*>) {
+                    executor.loadMainTokens(tokens as List<Token>)
+                } else {
+                    executor.loadFileSource(tokens as String)
+                }
             }
             callback("executed", "") // execution completed
         },
@@ -45,11 +50,20 @@ class EiaSession(
     )
 
     fun newMessage(message: String) {
-        if (awaitingInput) {
-            executor.standardInput.push(message)
-            awaitingInput = false
+        val json = JSONObject(message)
+        val type = json.getString("type")
+        val content = json.getString("data")
+        println(json)
+        if (type == "code") {
+            if (awaitingInput) {
+                executor.standardInput.push(content)
+                awaitingInput = false
+            } else {
+                completionHelper.addLine(content)
+            }
         } else {
-            completionHelper.addLine(message)
+            // a file!
+            parallelExecutor.tokens = content
         }
     }
 
