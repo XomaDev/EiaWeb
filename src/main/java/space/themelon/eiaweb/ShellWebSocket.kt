@@ -6,6 +6,7 @@ import org.java_websocket.server.WebSocketServer
 import org.json.JSONObject
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
+import java.util.WeakHashMap
 
 class ShellWebSocket(address: InetSocketAddress) : WebSocketServer(address) {
 
@@ -15,8 +16,9 @@ class ShellWebSocket(address: InetSocketAddress) : WebSocketServer(address) {
 
     override fun onOpen(conn: WebSocket?, handshake: ClientHandshake) {
         println("Web Socket Opened")
+        //ANTI_SPAM[address]?.kill()
         conn?.let {
-            SESSION_LOOKUP[it] = EiaSession { type, message ->
+            val session = EiaSession { type, message ->
                 conn.send(
                     JSONObject()
                         .put("type", type)
@@ -24,6 +26,7 @@ class ShellWebSocket(address: InetSocketAddress) : WebSocketServer(address) {
                         .toString()
                 )
             }
+            SESSION_LOOKUP[it] = session
         }
     }
 
